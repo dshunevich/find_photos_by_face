@@ -8,6 +8,7 @@ dir_path = 'photos/'
 result_path = 'finded_photos/'
 example_photo = 'find.jpg'
 quantity = 0
+files_action = 'copy' #  copy, move
 
 # get list of photos from folder 'photos'
 def getfilelist(dir_path):
@@ -25,7 +26,7 @@ def getfilelist(dir_path):
 # get a digital representation of the faces found on the photo
 # function returns an array with face biometrics
 def get_face_descriptors(filename):
-    facemas = []
+    faces_list = []
     img = io.imread(filename)
     detected_faces = detector(img, 1)
     shape = None
@@ -34,36 +35,40 @@ def get_face_descriptors(filename):
         shape = sp(img, d)
         try:
             face_descriptor = face_rec.compute_face_descriptor(img, shape)
-            if(face_descriptor != None):
-                facemas.append(face_descriptor)
+            if (face_descriptor != None):
+                faces_list.append(face_descriptor)
         except Exception as ex:
             pass
-    return facemas
+    return faces_list
 
 # Run finding faces for example photo and copy finded photos in folder "result_path"
 if __name__ == '__main__':
     sp = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
-    face_rec = dlib.face_recognition_model_v1(
-            'dlib_face_recognition_resnet_model_v1.dat')
+    face_rec = dlib.face_recognition_model_v1('dlib_face_recognition_resnet_model_v1.dat')
     detector = dlib.get_frontal_face_detector()
     min_distance = 2
 
     f1 = get_face_descriptors(example_photo)[0]
-    files=getfilelist(dir_path)
+    files = getfilelist(dir_path)
     flag = 0
     for f in files:
-        flag=flag+1
+        file_name, file_extension = os.path.splitext(f)
+        print(file_name, file_extension)
+        flag = flag+1
         print('Анализ ' +f+' - '+str(flag)+' фото из '+str(quantity))
         if os.path.exists(f):
             try:
-                findfaces=get_face_descriptors(f)
-                print('На фото: '+str(len(findfaces))+' лиц')
-                for f2 in findfaces: 
-                    if(f2!=[]):
+                find_faces = get_face_descriptors(f)
+                print('На фото: ' + str(len(find_faces)) + ' лиц')
+                for f2 in find_faces:
+                    if f2 != []:
                         euc_distance = distance.euclidean(f1, f2)
                         print(euc_distance)
                         if euc_distance < 0.65:
                             print('Найдено лицо: '+f)
-                            shutil.copyfile(f, result_path+str(flag)+'.jpg')
+                            if files_action == 'move':
+                                shutil.move(f, result_path+str(flag)+file_extension)
+                            elif files_action == 'copy':
+                                shutil.copyfile(f, result_path + str(flag) + file_extension)
             except:
                 continue
